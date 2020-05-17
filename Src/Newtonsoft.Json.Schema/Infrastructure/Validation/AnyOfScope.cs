@@ -17,6 +17,15 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 RaiseError($"JSON does not match any schemas from 'anyOf'.", ErrorType.AnyOf, ParentSchemaScope.Schema, null, ConditionalContext.Errors);
             }
 
+            // TODO: A little inefficent to find the valid children again
+            foreach (var childScope in ChildScopes)
+            {
+                if (childScope.IsValid)
+                {
+                    ConditionalContext.TrackEvaluatedSchema(childScope.Schema);
+                }
+            }
+
             return true;
         }
     }

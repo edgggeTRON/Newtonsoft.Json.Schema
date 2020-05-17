@@ -108,6 +108,18 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                     break;
             }
 
+            if (schema.Ref != null)
+            {
+                RefScope refScope = context.Validator.GetCachedScope<RefScope>(ScopeType.Ref);
+                if (refScope == null)
+                {
+                    refScope = new RefScope();
+                }
+                refScope.Initialize(context, scope, depth, ScopeType.Ref);
+                scope.AddChildScope(refScope);
+
+                refScope.InitializeScopes(token, new List<JSchema> { schema.Ref }, context.Scopes.Count - 1);
+            }
             if (!schema._allOf.IsNullOrEmpty())
             {
                 AllOfScope allOfScope = context.Validator.GetCachedScope<AllOfScope>(ScopeType.AllOf);
@@ -192,7 +204,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 
         internal static void EnsureValid(SchemaScope scope, JSchema schema, object value)
         {
-            if (schema.Reference != null)
+            if (schema.HasReference)
             {
                 throw new JSchemaException("Schema has unresolved reference '{0}'. All references must be resolved before a schema can be validated.".FormatWith(CultureInfo.InvariantCulture, schema.Reference.OriginalString));
             }
@@ -212,9 +224,15 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                     ConditionalScope conditionalScope = ConditionalChildren[i];
 
                     conditionalScope.EvaluateToken(token, value, depth);
+                    OnConditionalScopeValidated(conditionalScope);
+
                     Context.Validator.ReturnScopeToCache(conditionalScope);
                 }
             }
+        }
+
+        protected virtual void OnConditionalScopeValidated(ConditionalScope conditionalScope)
+        {
         }
 
         protected void EnsureEnum(JsonToken token, object value)
@@ -310,16 +328,16 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
             return true;
         }
 
-        protected void CreateScopesAndEvaluateToken(JsonToken token, object value, int depth, JSchema schema)
+        protected SchemaScope CreateScopesAndEvaluateToken(JsonToken token, object value, int depth, JSchema schema)
         {
-            CreateScopesAndEvaluateToken(token, value, depth, schema, this, Context);
+            return CreateScopesAndEvaluateToken(token, value, depth, schema, this, Context);
         }
 
-        protected void CreateScopesAndEvaluateToken(JsonToken token, object value, int depth, JSchema schema, SchemaScope parent, ContextBase context)
+        protected SchemaScope CreateScopesAndEvaluateToken(JsonToken token, object value, int depth, JSchema schema, SchemaScope parent, ContextBase context)
         {
             int startCount = Context.Scopes.Count;
 
-            CreateTokenScope(token, schema, context, parent, depth);
+            SchemaScope createdScope = CreateTokenScope(token, schema, context, parent, depth);
 
             int start = Context.Scopes.Count - 1;
             int end = startCount;
@@ -329,6 +347,8 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 Scope newScope = Context.Scopes[i];
                 newScope.EvaluateToken(token, value, depth);
             }
+
+            return createdScope;
         }
 
         internal override void RaiseError(IFormattable message, ErrorType errorType, JSchema schema, object value, IList<ValidationError> childErrors)

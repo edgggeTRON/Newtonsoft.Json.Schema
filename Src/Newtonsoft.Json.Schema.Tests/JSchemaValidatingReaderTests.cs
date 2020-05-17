@@ -2984,6 +2984,223 @@ namespace Newtonsoft.Json.Schema.Tests
 
             Assert.IsTrue(underlyingReader.IsClosed);
         }
+
+        [Test]
+        public void ContainsCountGreaterThanMaximumContains()
+        {
+            string schemaJson = @"{
+  ""type"":""array"",
+  ""contains"": {""const"": 1},
+  ""maxContains"":3
+}";
+
+            string json = "[1,1,1,1]";
+
+            SchemaValidationEventArgs validationEventArgs = null;
+
+            JSchemaValidatingReader reader = new JSchemaValidatingReader(new JsonTextReader(new StringReader(json)));
+            reader.ValidationEventHandler += (sender, args) => { validationEventArgs = args; };
+            reader.Schema = JSchema.Parse(schemaJson);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.StartArray, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.EndArray, reader.TokenType);
+
+            Assert.IsNotNull(validationEventArgs);
+            Assert.AreEqual("Contains match count 4 exceeds maximum contains count of 3. Path '', line 1, position 9.", validationEventArgs.Message);
+            Assert.AreEqual(ErrorType.MaximumContains, validationEventArgs.ValidationError.ErrorType);
+            Assert.AreEqual(null, validationEventArgs.ValidationError.Value);
+        }
+
+        [Test]
+        public void ContainsCountGreaterThanMaximumContains_WithOneNoMatch()
+        {
+            string schemaJson = @"{
+  ""type"":""array"",
+  ""contains"": {""const"": 1},
+  ""maxContains"":3
+}";
+
+            string json = "[1,1,1,1,0]";
+
+            SchemaValidationEventArgs validationEventArgs = null;
+
+            JSchemaValidatingReader reader = new JSchemaValidatingReader(new JsonTextReader(new StringReader(json)));
+            reader.ValidationEventHandler += (sender, args) => { validationEventArgs = args; };
+            reader.Schema = JSchema.Parse(schemaJson);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.StartArray, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.EndArray, reader.TokenType);
+
+            Assert.IsNotNull(validationEventArgs);
+            Assert.AreEqual("Contains match count 4 exceeds maximum contains count of 3. Path '', line 1, position 11.", validationEventArgs.Message);
+            Assert.AreEqual(ErrorType.MaximumContains, validationEventArgs.ValidationError.ErrorType);
+            Assert.AreEqual(1, validationEventArgs.ValidationError.ChildErrors.Count);
+        }
+
+        [Test]
+        public void ContainsCountLessThanMinimumContains()
+        {
+            string schemaJson = @"{
+  ""type"":""array"",
+  ""contains"": {""const"": 1},
+  ""minContains"":3
+}";
+
+            string json = "[1,1]";
+
+            SchemaValidationEventArgs validationEventArgs = null;
+
+            JSchemaValidatingReader reader = new JSchemaValidatingReader(new JsonTextReader(new StringReader(json)));
+            reader.ValidationEventHandler += (sender, args) => { validationEventArgs = args; };
+            reader.Schema = JSchema.Parse(schemaJson);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.StartArray, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.EndArray, reader.TokenType);
+
+            Assert.IsNotNull(validationEventArgs);
+            Assert.AreEqual("Contains match count 2 is less than minimum contains count of 3. Path '', line 1, position 5.", validationEventArgs.Message);
+            Assert.AreEqual(ErrorType.MinimumContains, validationEventArgs.ValidationError.ErrorType);
+            Assert.AreEqual(null, validationEventArgs.ValidationError.Value);
+        }
+
+        [Test]
+        public void ContainsCountLessThanMinimumContains_WithOneNoMatch()
+        {
+            string schemaJson = @"{
+  ""type"":""array"",
+  ""contains"": {""const"": 1},
+  ""minContains"":3
+}";
+
+            string json = "[1,1,0]";
+
+            SchemaValidationEventArgs validationEventArgs = null;
+
+            JSchemaValidatingReader reader = new JSchemaValidatingReader(new JsonTextReader(new StringReader(json)));
+            reader.ValidationEventHandler += (sender, args) => { validationEventArgs = args; };
+            reader.Schema = JSchema.Parse(schemaJson);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.StartArray, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.Integer, reader.TokenType);
+
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(JsonToken.EndArray, reader.TokenType);
+
+            Assert.IsNotNull(validationEventArgs);
+            Assert.AreEqual("Contains match count 2 is less than minimum contains count of 3. Path '', line 1, position 7.", validationEventArgs.Message);
+            Assert.AreEqual(ErrorType.MinimumContains, validationEventArgs.ValidationError.ErrorType);
+            Assert.AreEqual(1, validationEventArgs.ValidationError.ChildErrors.Count);
+        }
+
+        [Test]
+        public void Ref_AlongsideSiblingKeywords_NoMatchAgainstOriginal()
+        {
+            string schemaJson = @"{
+                ""$defs"": {
+                    ""reffed"": {
+                        ""type"": ""array""
+                    }
+                },
+                ""properties"": {
+                    ""foo"": {
+                        ""$ref"": ""#/$defs/reffed"",
+                        ""maxItems"": 2
+                    }
+                }
+            }";
+
+            string json = @"{ ""foo"": [1, 2, 3] }";
+
+            SchemaValidationEventArgs validationEventArgs = null;
+
+            JSchemaValidatingReader reader = new JSchemaValidatingReader(new JsonTextReader(new StringReader(json)));
+            reader.ValidationEventHandler += (sender, args) => { validationEventArgs = args; };
+            reader.Schema = JSchema.Parse(schemaJson);
+
+            while (reader.Read())
+            {
+            }
+
+            Assert.IsNotNull(validationEventArgs);
+            Assert.AreEqual("Array item count 3 exceeds maximum count of 2. Path 'foo', line 1, position 18.", validationEventArgs.Message);
+        }
+
+        [Test]
+        public void Ref_AlongsideSiblingKeywords_NoMatchAgainstRef()
+        {
+            string schemaJson = @"{
+                ""$defs"": {
+                    ""reffed"": {
+                        ""type"": ""array""
+                    }
+                },
+                ""properties"": {
+                    ""foo"": {
+                        ""$ref"": ""#/$defs/reffed"",
+                        ""maxItems"": 2
+                    }
+                }
+            }";
+
+            string json = @"{ ""foo"": 1 }";
+
+            SchemaValidationEventArgs validationEventArgs = null;
+
+            JSchemaValidatingReader reader = new JSchemaValidatingReader(new JsonTextReader(new StringReader(json)));
+            reader.ValidationEventHandler += (sender, args) => { validationEventArgs = args; };
+            reader.Schema = JSchema.Parse(schemaJson);
+
+            while (reader.Read())
+            {
+            }
+
+            Assert.IsNotNull(validationEventArgs);
+            Assert.AreEqual("JSON does not match schema from '$ref'. Path 'foo', line 1, position 10.", validationEventArgs.Message);
+            Assert.AreEqual(ErrorType.Ref, validationEventArgs.ValidationError.ErrorType);
+            Assert.AreEqual(1, validationEventArgs.ValidationError.ChildErrors.Count);
+            Assert.AreEqual("Invalid type. Expected Array but got Integer.", validationEventArgs.ValidationError.ChildErrors[0].Message);
+        }
     }
 
     public sealed class JsonReaderStubWithIsClosed : JsonReader

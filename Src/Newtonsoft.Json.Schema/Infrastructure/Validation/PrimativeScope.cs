@@ -304,6 +304,10 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 {
                     return FormatHelpers.ValidateUriReference(value);
                 }
+                case Constants.Formats.Duration:
+                {
+                    return FormatHelpers.ValidateDuration(value);
+                }
                 case Constants.Formats.UriTemplate:
                 {
                     return FormatHelpers.ValidateUriTemplate(value);

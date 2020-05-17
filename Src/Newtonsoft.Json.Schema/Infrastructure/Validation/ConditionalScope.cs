@@ -37,6 +37,8 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
             ConditionalContext = ConditionalContext.Create(context);
         }
 
+        public List<JSchema> EvaluatedSchemas => ConditionalContext.EvaluatedSchemas;
+
         public void InitializeScopes(JsonToken token, List<JSchema> schemas, int scopeIndex)
         {
             foreach (JSchema schema in schemas)

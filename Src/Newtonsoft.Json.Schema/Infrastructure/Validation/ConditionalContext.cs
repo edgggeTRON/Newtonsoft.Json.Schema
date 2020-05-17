@@ -11,10 +11,13 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
     internal class ConditionalContext : ContextBase
     {
         public List<ValidationError> Errors;
+        public List<JSchema> EvaluatedSchemas;
+        public readonly ConditionalContext ParentContext;
 
-        public ConditionalContext(Validator validator)
+        public ConditionalContext(Validator validator, ContextBase parentContext)
             : base(validator)
         {
+            ParentContext = parentContext as ConditionalContext;
         }
 
         public override void RaiseError(IFormattable message, ErrorType errorType, JSchema schema, object value, IList<ValidationError> childErrors)
@@ -27,9 +30,20 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
             Errors.Add(Validator.CreateError(message, errorType, schema, value, childErrors));
         }
 
+        public void TrackEvaluatedSchema(JSchema schema)
+        {
+            if (EvaluatedSchemas == null)
+            {
+                EvaluatedSchemas = new List<JSchema>();
+            }
+
+            EvaluatedSchemas.Add(schema);
+            ParentContext?.TrackEvaluatedSchema(schema);
+        }
+
         public static ConditionalContext Create(ContextBase context)
         {
-            return new ConditionalContext(context.Validator);
+            return new ConditionalContext(context.Validator, context);
         }
 
         public override bool HasErrors => !Errors.IsNullOrEmpty();

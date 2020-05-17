@@ -18,6 +18,8 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 RaiseError($"JSON is valid against schema from 'not'.", ErrorType.Not, ParentSchemaScope.Schema, null, ConditionalContext.Errors);
             }
 
+            // Note: Schema in not can never be used to indicate evaluated properties/items
+
             return true;
         }
     }

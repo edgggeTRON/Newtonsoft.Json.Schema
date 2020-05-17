@@ -42,6 +42,17 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 
                 RaiseError(message, ErrorType.OneOf, ParentSchemaScope.Schema, null, ConditionalContext.Errors);
             }
+            else
+            {
+                // TODO: A little inefficent to find the valid child again
+                foreach (var childScope in ChildScopes)
+                {
+                    if (childScope.IsValid)
+                    {
+                        ConditionalContext.TrackEvaluatedSchema(childScope.Schema);
+                    }
+                }
+            }
 
             return true;
         }
