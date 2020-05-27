@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 {
-    internal class RefScope : ConditionalScope
+    internal sealed class RefScope : ConditionalScope
     {
         private bool _isReentrant;
 

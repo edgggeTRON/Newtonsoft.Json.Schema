@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 {
-    internal class AllOfScope : ConditionalScope
+    internal sealed class AllOfScope : ConditionalScope
     {
         protected override bool EvaluateTokenCore(JsonToken token, object value, int depth)
         {

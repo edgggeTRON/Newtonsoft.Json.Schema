@@ -12,12 +12,17 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
     {
         public List<ValidationError> Errors;
         public List<JSchema> EvaluatedSchemas;
-        public readonly ConditionalContext ParentContext;
 
-        public ConditionalContext(Validator validator, ContextBase parentContext)
+        private readonly bool _trackEvaluatedSchemas;
+        private readonly ConditionalContext _parentConditionalContext;
+
+        public ConditionalContext(Validator validator, ContextBase parentContext, bool trackEvaluatedSchemas)
             : base(validator)
         {
-            ParentContext = parentContext as ConditionalContext;
+            _parentConditionalContext = parentContext as ConditionalContext;
+
+            // Track evaluated schemas if requested, or the parent context is already tracking.
+            _trackEvaluatedSchemas = trackEvaluatedSchemas || (_parentConditionalContext?._trackEvaluatedSchemas ?? false);
         }
 
         public override void RaiseError(IFormattable message, ErrorType errorType, JSchema schema, object value, IList<ValidationError> childErrors)
@@ -32,18 +37,24 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 
         public void TrackEvaluatedSchema(JSchema schema)
         {
-            if (EvaluatedSchemas == null)
+            // Optimization to only track evaluated schemas if required, e.g. unevaluatedProperties is set
+            if (_trackEvaluatedSchemas)
             {
-                EvaluatedSchemas = new List<JSchema>();
-            }
+                if (EvaluatedSchemas == null)
+                {
+                    EvaluatedSchemas = new List<JSchema>();
+                }
 
-            EvaluatedSchemas.Add(schema);
-            ParentContext?.TrackEvaluatedSchema(schema);
+                // TODO: Could be smarter about tracking schemas and only store it once
+                // rather than each conditional context in the hierarchy.
+                EvaluatedSchemas.Add(schema);
+                _parentConditionalContext?.TrackEvaluatedSchema(schema);
+            }
         }
 
-        public static ConditionalContext Create(ContextBase context)
+        public static ConditionalContext Create(ContextBase context, bool trackEvaluatedSchemas)
         {
-            return new ConditionalContext(context.Validator, context);
+            return new ConditionalContext(context.Validator, context, trackEvaluatedSchemas);
         }
 
         public override bool HasErrors => !Errors.IsNullOrEmpty();

@@ -6,7 +6,7 @@
 
 namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 {
-    internal class AlwaysFalseScope : SchemaScope
+    internal sealed class AlwaysFalseScope : SchemaScope
     {
         internal static AlwaysFalseScope Instance = new AlwaysFalseScope();
 

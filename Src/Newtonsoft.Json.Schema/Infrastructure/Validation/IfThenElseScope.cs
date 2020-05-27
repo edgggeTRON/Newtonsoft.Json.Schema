@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 {
-    internal class IfThenElseScope : ConditionalScope
+    internal sealed class IfThenElseScope : ConditionalScope
     {
         public ConditionalContext ThenContext;
         public ConditionalContext ElseContext;

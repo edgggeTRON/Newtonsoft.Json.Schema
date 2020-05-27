@@ -47,6 +47,16 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
         }
 #endif
 
+        public virtual bool ShouldValidateUnevaluated()
+        {
+            return false;
+        }
+
+        public ConditionalContext CreateConditionalContext()
+        {
+            return ConditionalContext.Create(Context, ShouldValidateUnevaluated());
+        }
+
         private void AddChildScope(ConditionalScope scope)
         {
             if (ConditionalChildren == null)
@@ -183,12 +193,12 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 if (schema.Then != null)
                 {
                     ifThenElseScope.Then = schema.Then;
-                    ifThenElseScope.ThenContext = ConditionalContext.Create(context);
+                    ifThenElseScope.ThenContext = scope.CreateConditionalContext();
                 }
                 if (schema.Else != null)
                 {
                     ifThenElseScope.Else = schema.Else;
-                    ifThenElseScope.ElseContext = ConditionalContext.Create(context);
+                    ifThenElseScope.ElseContext = scope.CreateConditionalContext();
                 }
 
                 ifThenElseScope.InitializeScopes(token, context.Scopes.Count - 1);

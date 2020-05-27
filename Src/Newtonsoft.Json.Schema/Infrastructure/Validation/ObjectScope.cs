@@ -11,7 +11,7 @@ using Newtonsoft.Json.Schema.Infrastructure.Collections;
 
 namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 {
-    internal class ObjectScope : SchemaScope
+    internal sealed class ObjectScope : SchemaScope
     {
         private int _propertyCount;
         private string _currentPropertyName;
@@ -73,7 +73,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 }
             }
 
-            if (ShouldValidateUnevaluatedProperties(schema))
+            if (ShouldValidateUnevaluated())
             {
                 if (_unevaluatedScopes != null)
                 {
@@ -86,20 +86,20 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
             }
         }
 
-        private bool ShouldValidateUnevaluatedProperties(JSchema schema)
+        public override bool ShouldValidateUnevaluated()
         {
             // If additional items are validated then there are no unevaluated properties
-            if (schema.HasAdditionalProperties)
+            if (Schema.HasAdditionalProperties)
             {
                 return false;
             }
 
-            return !(schema.AllowUnevaluatedProperties ?? true) || schema.UnevaluatedProperties != null;
+            return !(Schema.AllowUnevaluatedProperties ?? true) || Schema.UnevaluatedProperties != null;
         }
 
         protected override void OnConditionalScopeValidated(ConditionalScope conditionalScope)
         {
-            if (ShouldValidateUnevaluatedProperties(Schema))
+            if (ShouldValidateUnevaluated())
             {
                 if (!conditionalScope.EvaluatedSchemas.IsNullOrEmpty())
                 {
@@ -297,10 +297,10 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                                 CreateScopesAndEvaluateToken(token, value, depth, Schema.AdditionalProperties);
                             }
 
-                            if (ShouldValidateUnevaluatedProperties(Schema))
+                            if (ShouldValidateUnevaluated())
                             {
                                 _unevaluatedScopes[_currentPropertyName] = Schema.UnevaluatedProperties != null
-                                    ? new UnevaluatedContext(CreateScopesAndEvaluateToken(token, value, depth, Schema.UnevaluatedProperties, this, ConditionalContext.Create(Context)))
+                                    ? new UnevaluatedContext(CreateScopesAndEvaluateToken(token, value, depth, Schema.UnevaluatedProperties, this, CreateConditionalContext()))
                                     : new UnevaluatedContext(AlwaysFalseScope.Instance);
                             }
                         }
@@ -308,7 +308,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 
                     if (JsonTokenHelpers.IsPrimitiveOrEndToken(token))
                     {
-                        if (ShouldValidateUnevaluatedProperties(Schema) &&
+                        if (ShouldValidateUnevaluated() &&
                             _unevaluatedScopes.TryGetValue(_currentPropertyName, out UnevaluatedContext unevaluatedContext))
                         {
                             // Property is valid against unevaluatedProperties schema so no need to search further
@@ -438,7 +438,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 {
                     if (dependency.Value is JSchema dependencySchema)
                     {
-                        SchemaScope scope = CreateTokenScope(token, dependencySchema, ConditionalContext.Create(Context), null, InitialDepth);
+                        SchemaScope scope = CreateTokenScope(token, dependencySchema, CreateConditionalContext(), null, InitialDepth);
                         _dependencyScopes.Add(dependency.Key, scope);
                     }
                 }
@@ -449,7 +449,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 {
                     if (dependency.Value is JSchema dependencySchema)
                     {
-                        SchemaScope scope = CreateTokenScope(token, dependencySchema, ConditionalContext.Create(Context), null, InitialDepth);
+                        SchemaScope scope = CreateTokenScope(token, dependencySchema, CreateConditionalContext(), null, InitialDepth);
                         _dependencyScopes.Add(dependency.Key, scope);
                     }
                 }

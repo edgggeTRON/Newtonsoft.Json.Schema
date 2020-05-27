@@ -11,7 +11,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 {
-    internal class ArrayScope : SchemaScope
+    internal sealed class ArrayScope : SchemaScope
     {
         private int _index;
         private int _matchCount;
@@ -51,7 +51,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                 }
             }
 
-            if (ShouldValidateUnevaluatedItems(schema))
+            if (ShouldValidateUnevaluated())
             {
                 if (_unevaluatedScopes != null)
                 {
@@ -64,20 +64,20 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
             }
         }
 
-        private bool ShouldValidateUnevaluatedItems(JSchema schema)
+        public override bool ShouldValidateUnevaluated()
         {
             // If additional items are validated then there are no unevaluated items
-            if (schema.HasAdditionalItems)
+            if (Schema.HasAdditionalItems)
             {
                 return false;
             }
 
-            return !(schema.AllowUnevaluatedItems ?? true) || schema.UnevaluatedItems != null;
+            return !(Schema.AllowUnevaluatedItems ?? true) || Schema.UnevaluatedItems != null;
         }
 
         protected override void OnConditionalScopeValidated(ConditionalScope conditionalScope)
         {
-            if (ShouldValidateUnevaluatedItems(Schema))
+            if (ShouldValidateUnevaluated())
             {
                 if (!conditionalScope.EvaluatedSchemas.IsNullOrEmpty())
                 {
@@ -231,7 +231,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 
                     if (ShouldEvaluateContains())
                     {
-                        ConditionalContext containsContext = ConditionalContext.Create(Context);
+                        ConditionalContext containsContext = CreateConditionalContext();
                         _containsContexts.Add(containsContext);
 
                         // contains scope should not have the current scope the parent
@@ -241,10 +241,10 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
 
                     if (!matched)
                     {
-                        if (ShouldValidateUnevaluatedItems(Schema))
+                        if (ShouldValidateUnevaluated())
                         {
                             _unevaluatedScopes[_index] = Schema.UnevaluatedItems != null
-                                ? new UnevaluatedContext(CreateScopesAndEvaluateToken(token, value, depth, Schema.UnevaluatedItems, this, ConditionalContext.Create(Context)))
+                                ? new UnevaluatedContext(CreateScopesAndEvaluateToken(token, value, depth, Schema.UnevaluatedItems, this, CreateConditionalContext()))
                                 : new UnevaluatedContext(AlwaysFalseScope.Instance);
                         }
                     }
@@ -277,7 +277,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Validation
                         }
                     }
 
-                    if (ShouldValidateUnevaluatedItems(Schema) &&
+                    if (ShouldValidateUnevaluated() &&
                         _unevaluatedScopes.TryGetValue(_index, out UnevaluatedContext unevaluatedContext))
                     {
                         // Property is valid against unevaluatedItems schema so no need to search further
